@@ -1,9 +1,9 @@
-torch
-torchvision
-opencv-python
-Pillow
-PyQt5
-numpy
-faiss-cpu
-ultralytics
+torch==1.13.1
+torchvision==0.14.1
+opencv-python==4.8.0.74
+Pillow==10.0.0
+PyQt5==5.15.9
+numpy==1.24.3
+faiss-cpu==1.7.4
+ultralytics==8.0.196
 git+https://github.com/openai/CLIP.git
