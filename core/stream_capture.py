@@ -141,9 +141,22 @@ class StreamCapture:
                     time.sleep(0.05)
                     continue
 
-                # got a frame
+                # got a frame - validate
                 self._last_success_time = now
                 last_read_time = now
+                try:
+                    import numpy as _np
+                    if not isinstance(frame, _np.ndarray):
+                        logger.warning("Read frame is not ndarray, skipping: %s", type(frame))
+                        continue
+                    if frame.size == 0:
+                        logger.warning("Read empty frame (size=0), skipping")
+                        continue
+                    # if frame has unexpected number of channels, try to handle
+                    if frame.ndim == 3 and frame.shape[2] not in (3, 4):
+                        logger.warning("Read frame with unusual channels=%s", frame.shape[2])
+                except Exception:
+                    pass
 
                 # simple bad-frame checks: empty, tiny variance, wrong shape
                 try:
