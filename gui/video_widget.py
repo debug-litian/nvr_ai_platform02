@@ -10,6 +10,8 @@ class VideoWidget(QWidget):
         self._frame = None
         self._overlay_backend = ""
         self._overlay_fps = 0.0
+        self._overlay_cpu = None
+        self._overlay_recv_fps = None
         self._overlay_status = ""
 
     def set_frame(self, frame: np.ndarray):
@@ -68,6 +70,10 @@ class VideoWidget(QWidget):
                 lines.append(f"Backend: {self._overlay_backend}")
             if self._overlay_fps is not None:
                 lines.append(f"FPS: {self._overlay_fps:.1f}")
+            if self._overlay_recv_fps is not None:
+                lines.append(f"RecvFPS: {self._overlay_recv_fps:.1f}")
+            if self._overlay_cpu is not None:
+                lines.append(f"CPU: {self._overlay_cpu:.0f}%")
             if self._overlay_status:
                 lines.append(f"Status: {self._overlay_status}")
             if lines:
@@ -82,11 +88,19 @@ class VideoWidget(QWidget):
         except Exception:
             pass
 
-    def set_overlay_info(self, backend: str = "", fps: float = 0.0, status: str = ""):
+    def set_overlay_info(self, backend: str = "", fps: float = 0.0, status: str = "", cpu: float = None, recv_fps: float = None):
         self._overlay_backend = backend or ""
         try:
             self._overlay_fps = float(fps or 0.0)
         except Exception:
             self._overlay_fps = 0.0
         self._overlay_status = status or ""
+        try:
+            self._overlay_cpu = None if cpu is None else float(cpu)
+        except Exception:
+            self._overlay_cpu = None
+        try:
+            self._overlay_recv_fps = None if recv_fps is None else float(recv_fps)
+        except Exception:
+            self._overlay_recv_fps = None
         self.update()

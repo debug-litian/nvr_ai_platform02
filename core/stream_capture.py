@@ -144,19 +144,62 @@ class StreamCapture:
             '-nostdin', '-an', '-sn', '-loglevel', 'error', '-'
         ]
         logger.info("Starting ffmpeg subprocess for decode: %s", ' '.join(cmd))
-        self.ffmpeg_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self._backend = 'FFMPEG_PROC'
-        # spawn stderr reader thread
-        def _read_err(proc):
+        try:
+            # open stderr log file under settings.LOG_DIR if available
+            stderr_log = None
             try:
-                for line in proc.stderr:
+                log_dir = getattr(__import__('config.settings', fromlist=['LOG_DIR']), 'LOG_DIR')
+                fname = f"ffmpeg_{int(time.time())}.log"
+                stderr_path = Path(log_dir) / fname
+                stderr_log = open(stderr_path, 'ab')
+                logger.info("ffmpeg stderr will be saved to %s", str(stderr_path))
+            except Exception:
+                stderr_log = None
+
+            self.ffmpeg_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self._backend = 'FFMPEG_PROC'
+            logger.info("ffmpeg pid=%s", getattr(self.ffmpeg_proc, 'pid', 'N/A'))
+
+            # spawn stderr reader thread that logs and writes to file
+            def _read_err(proc, stderr_fp):
+                try:
+                    while True:
+                        line = proc.stderr.readline()
+                        if not line:
+                            break
+                        try:
+                            txt = line.decode(errors='ignore').strip()
+                            logger.debug("ffmpeg: %s", txt)
+                            if stderr_fp:
+                                try:
+                                    stderr_fp.write(line)
+                                    stderr_fp.flush()
+                                except Exception:
+                                    pass
+                        except Exception:
+                            pass
+                except Exception:
+                    pass
+                finally:
                     try:
-                        logger.debug("ffmpeg: %s", line.decode(errors='ignore').strip())
+                        if stderr_fp:
+                            stderr_fp.close()
                     except Exception:
                         pass
+
+            threading.Thread(target=_read_err, args=(self.ffmpeg_proc, stderr_log), daemon=True).start()
+        except FileNotFoundError:
+            logger.exception("ffmpeg binary not found in PATH")
+            raise
+        except Exception:
+            logger.exception("Failed to start ffmpeg subprocess")
+            # ensure file closed
+            try:
+                if stderr_log:
+                    stderr_log.close()
             except Exception:
                 pass
-        threading.Thread(target=_read_err, args=(self.ffmpeg_proc,), daemon=True).start()
+            raise
 
     def _stop_ffmpeg_proc(self):
         if self.ffmpeg_proc:

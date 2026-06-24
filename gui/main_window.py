@@ -17,7 +17,12 @@ import threading
 import numpy as np
 import csv
 import os
+import time
 import cv2
+try:
+    import psutil
+except Exception:
+    psutil = None
 
 logger = get_logger("main_window")
 
@@ -38,6 +43,10 @@ class MainWindow(QMainWindow):
         self._green_consecutive = 0
         self._elapsed = QElapsedTimer()
         self._elapsed.start()
+        # frame receive FPS tracking
+        self._recv_count = 0
+        self._recv_last_ts = time.time()
+        self._recv_fps = 0.0
 
     def _init_ui(self):
         central = QWidget()
@@ -142,6 +151,16 @@ class MainWindow(QMainWindow):
     def _on_frame(self, ts, frame):
         # called in background thread
         self._latest = (ts, frame)
+        # track receive fps
+        try:
+            self._recv_count += 1
+            now = time.time()
+            if now - self._recv_last_ts >= 1.0:
+                self._recv_fps = self._recv_count / (now - self._recv_last_ts)
+                self._recv_count = 0
+                self._recv_last_ts = now
+        except Exception:
+            pass
 
     def _poll_frame(self):
         if self._latest is None:
@@ -161,8 +180,18 @@ class MainWindow(QMainWindow):
                     fps = 0.0
         except Exception:
             pass
-        # display immediately
-        self.video.set_overlay_info(backend=backend, fps=fps, status=status)
+        # sample CPU%
+        cpu_pct = None
+        try:
+            if psutil is not None:
+                p = psutil.Process(os.getpid())
+                # non-blocking instant percent (may be 0.0), attempt short sample
+                cpu_pct = p.cpu_percent(interval=0.0)
+        except Exception:
+            cpu_pct = None
+
+        # display immediately (include recv fps and cpu)
+        self.video.set_overlay_info(backend=backend, fps=fps, status=status, cpu=cpu_pct, recv_fps=self._recv_fps)
         self.video.set_frame(frame)
         # process detectors in background
         threading.Thread(target=self._process_frame, args=(ts, frame), daemon=True).start()

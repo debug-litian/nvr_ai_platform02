@@ -21,7 +21,7 @@ BAD_FRAME_STD_THRESHOLD = 12.0
 MAX_CONSECUTIVE_BAD_FRAMES = 8
 
 # 是否使用独立的 ffmpeg 进程做解码（更稳定但需系统安装 ffmpeg）
-USE_FFMPEG_DECODE = False
+USE_FFMPEG_DECODE = True
 # 当使用 ffmpeg 解码时，输出帧尺寸（width, height）
 FFMPEG_DECODE_SIZE = (640, 480)
 
@@ -46,6 +46,10 @@ os.makedirs(MAPPINGS_DIR, exist_ok=True)
 os.makedirs(ALERTS_DIR, exist_ok=True)
 os.makedirs(CLIP_MODEL_DIR, exist_ok=True)
 os.makedirs(YOLO_MODEL_DIR, exist_ok=True)
+
+# 日志目录（用于保存 ffmpeg stderr 等运行时日志）
+LOG_DIR = ROOT / "logs"
+os.makedirs(LOG_DIR, exist_ok=True)
 
 def get_device():
     # Normalize device string
