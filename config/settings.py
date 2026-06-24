@@ -3,13 +3,21 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# RTSP default (empty placeholder)
-RTSP_URL = "rtsp://admin:password@127.0.0.1:554/Preview_01_main"
+# RTSP default (updated)
+RTSP_URL = "rtsp://admin:111111..@192.168.124.4:554/Preview_01_main"
 
 DEVICE = os.environ.get("NVR_DEVICE", "cpu")
 SAMPLE_FPS = 2
 TOP_K = 10
-GREEN_LINE_THRESHOLD = 0.30
+GREEN_LINE_THRESHOLD = 0.65
+# 连续多少帧超过阈值才触发告警，减少误报
+GREEN_LINE_CONSECUTIVE = 3
+
+# 帧质量判定（用于丢弃坏帧）: 灰度图像标准差小于该值视为坏帧
+BAD_FRAME_STD_THRESHOLD = 6.0
+# 连续坏帧超过该数量则尝试重连
+MAX_CONSECUTIVE_BAD_FRAMES = 8
+
 YOLO_CONFIDENCE_THRESHOLD = 0.5
 
 DATA_DIR = ROOT / "data"
