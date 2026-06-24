@@ -1,0 +1,9 @@
+torch
+torchvision
+opencv-python
+Pillow
+PyQt5
+numpy
+faiss-cpu
+ultralytics
+git+https://github.com/openai/CLIP.git
