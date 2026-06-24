@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QWidget
-from PyQt5.QtGui import QImage, QPainter
+from PyQt5.QtGui import QImage, QPainter, QFont, QColor
 from PyQt5.QtCore import QRect, Qt
 import numpy as np
 
@@ -8,6 +8,9 @@ class VideoWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._frame = None
+        self._overlay_backend = ""
+        self._overlay_fps = 0.0
+        self._overlay_status = ""
 
     def set_frame(self, frame: np.ndarray):
         # frame is expected BGR (opencv). Validate before conversion to avoid crashes.
@@ -54,3 +57,36 @@ class VideoWidget(QWidget):
             painter.drawImage(rect, self._qimg.scaled(self.width(), self.height(), Qt.KeepAspectRatio))
         else:
             painter.fillRect(self.rect(), Qt.black)
+        # draw overlay text at top-left
+        try:
+            painter.setRenderHint(QPainter.TextAntialiasing)
+            font = QFont("Arial", 10)
+            painter.setFont(font)
+            padding = 6
+            lines = []
+            if self._overlay_backend:
+                lines.append(f"Backend: {self._overlay_backend}")
+            if self._overlay_fps is not None:
+                lines.append(f"FPS: {self._overlay_fps:.1f}")
+            if self._overlay_status:
+                lines.append(f"Status: {self._overlay_status}")
+            if lines:
+                text = " | ".join(lines)
+                metrics = painter.fontMetrics()
+                w = metrics.horizontalAdvance(text) + padding * 2
+                h = metrics.height() + padding * 2
+                # semi-transparent background
+                painter.fillRect(0, 0, w, h, QColor(0, 0, 0, 140))
+                painter.setPen(QColor(255, 255, 255))
+                painter.drawText(padding, padding + metrics.ascent(), text)
+        except Exception:
+            pass
+
+    def set_overlay_info(self, backend: str = "", fps: float = 0.0, status: str = ""):
+        self._overlay_backend = backend or ""
+        try:
+            self._overlay_fps = float(fps or 0.0)
+        except Exception:
+            self._overlay_fps = 0.0
+        self._overlay_status = status or ""
+        self.update()

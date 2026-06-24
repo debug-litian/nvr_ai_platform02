@@ -17,6 +17,7 @@ import threading
 import numpy as np
 import csv
 import os
+import cv2
 
 logger = get_logger("main_window")
 
@@ -146,7 +147,22 @@ class MainWindow(QMainWindow):
         if self._latest is None:
             return
         ts, frame = self._latest
+        # compute overlay info
+        backend = getattr(self.capture, '_backend', '') or ''
+        fps = 0.0
+        status = '● 未连接'
+        try:
+            cap = getattr(self.capture, 'cap', None)
+            if cap is not None and hasattr(cap, 'isOpened') and cap.isOpened():
+                status = '● 已连接'
+                try:
+                    fps = float(cap.get(cv2.CAP_PROP_FPS) or 0.0)
+                except Exception:
+                    fps = 0.0
+        except Exception:
+            pass
         # display immediately
+        self.video.set_overlay_info(backend=backend, fps=fps, status=status)
         self.video.set_frame(frame)
         # process detectors in background
         threading.Thread(target=self._process_frame, args=(ts, frame), daemon=True).start()
