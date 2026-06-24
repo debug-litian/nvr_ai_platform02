@@ -18,6 +18,7 @@ class StreamCapture:
         self.cap = None
         self.thread = None
         self.stopped = threading.Event()
+        self.running = False
         self.q = queue.Queue(maxsize=max_queue)
         self._backend = None
         self._last_frame_time = 0
@@ -28,14 +29,24 @@ class StreamCapture:
         if self.thread and self.thread.is_alive():
             return
         self.stopped.clear()
+        self.running = True
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.thread.start()
         logger.info("StreamCapture started")
 
     def stop(self):
+        # signal thread to stop
+        self.running = False
         self.stopped.set()
+        # clear queue to release consumers
+        try:
+            with self.q.mutex:
+                self.q.queue.clear()
+        except Exception:
+            pass
         if self.thread:
-            self.thread.join(timeout=2)
+            self.thread.join(timeout=3)
+        # ensure capture released
         if self.cap:
             try:
                 self.cap.release()
@@ -195,6 +206,7 @@ class StreamCapture:
                     self.cap.release()
             except Exception:
                 pass
+            logger.info("StreamCapture thread 线程已退出")
 
     def read(self, timeout=0.1):
         try:

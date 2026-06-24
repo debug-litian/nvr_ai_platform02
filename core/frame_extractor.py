@@ -14,25 +14,28 @@ class FrameExtractor:
         self.callback = callback
         self.thread = None
         self.stopped = threading.Event()
+        self.running = False
 
     def start(self):
         if self.thread and self.thread.is_alive():
             return
         self.stopped.clear()
+        self.running = True
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.thread.start()
         logger.info("FrameExtractor started")
 
     def stop(self):
+        self.running = False
         self.stopped.set()
         if self.thread:
             self.thread.join(timeout=1)
-        logger.info("FrameExtractor stopped")
+        logger.info("FrameExtractor stopped (线程已退出)")
 
     def _run(self):
         interval = 1.0 / max(1.0, float(self.sample_fps))
         last = 0
-        while not self.stopped.is_set():
+        while self.running:
             item = self.source.read(timeout=0.5)
             if item is None:
                 continue
@@ -44,3 +47,4 @@ class FrameExtractor:
                         self.callback(ts, frame)
                 except Exception as e:
                     logger.exception("Extractor callback error: %s", e)
+        logger.info("FrameExtractor loop exit")
