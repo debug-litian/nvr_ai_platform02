@@ -45,7 +45,8 @@ class StreamCapture:
         except Exception:
             pass
         if self.thread:
-            self.thread.join(timeout=3)
+            # wait longer for thread to exit gracefully
+            self.thread.join(timeout=10)
         # ensure capture released
         if self.cap:
             try:

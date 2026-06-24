@@ -29,7 +29,8 @@ class FrameExtractor:
         self.running = False
         self.stopped.set()
         if self.thread:
-            self.thread.join(timeout=1)
+            # allow more time for graceful shutdown
+            self.thread.join(timeout=5)
         logger.info("FrameExtractor stopped (线程已退出)")
 
     def _run(self):
