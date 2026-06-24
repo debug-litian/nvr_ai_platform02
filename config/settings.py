@@ -14,9 +14,16 @@ GREEN_LINE_THRESHOLD = 0.65
 GREEN_LINE_CONSECUTIVE = 3
 
 # 帧质量判定（用于丢弃坏帧）: 灰度图像标准差小于该值视为坏帧
-BAD_FRAME_STD_THRESHOLD = 6.0
+# 帧质量判定（用于丢弃坏帧）: 灰度图像标准差小于该值视为坏帧
+# 提高阈值以避免误杀
+BAD_FRAME_STD_THRESHOLD = 12.0
 # 连续坏帧超过该数量则尝试重连
 MAX_CONSECUTIVE_BAD_FRAMES = 8
+
+# 是否使用独立的 ffmpeg 进程做解码（更稳定但需系统安装 ffmpeg）
+USE_FFMPEG_DECODE = False
+# 当使用 ffmpeg 解码时，输出帧尺寸（width, height）
+FFMPEG_DECODE_SIZE = (640, 480)
 
 YOLO_CONFIDENCE_THRESHOLD = 0.5
 

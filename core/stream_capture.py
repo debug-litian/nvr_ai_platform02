@@ -3,6 +3,7 @@ import time
 import queue
 import cv2
 import os
+import subprocess
 from pathlib import Path
 from typing import Optional
 from config import settings
@@ -24,6 +25,10 @@ class StreamCapture:
         self._last_frame_time = 0
         self._last_success_time = 0
         self._ffmpeg_preferred = True
+        # ffmpeg subprocess decoding
+        self.ffmpeg_proc = None
+        self._ffmpeg_frame_bytes = 0
+        self._ffmpeg_size = tuple(settings.FFMPEG_DECODE_SIZE) if hasattr(settings, 'FFMPEG_DECODE_SIZE') else (640, 480)
 
     def start(self):
         if self.thread and self.thread.is_alive():
@@ -53,14 +58,29 @@ class StreamCapture:
                 self.cap.release()
             except Exception:
                 pass
+        # stop ffmpeg proc if running
+        try:
+            self._stop_ffmpeg_proc()
+        except Exception:
+            pass
         logger.info("StreamCapture stopped")
 
     def _open_capture(self):
+        # stop any running ffmpeg proc first
+        self._stop_ffmpeg_proc()
+
         if self.cap:
             try:
                 self.cap.release()
             except Exception:
                 pass
+        # If configured, use external ffmpeg process for decoding
+        if getattr(settings, 'USE_FFMPEG_DECODE', False):
+            try:
+                self._start_ffmpeg_proc()
+                return
+            except Exception:
+                logger.exception("Failed to start ffmpeg proc, falling back to OpenCV capture")
         # Force OpenCV to use TCP transport for RTSP
         try:
             os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'rtsp_transport;tcp'
@@ -114,6 +134,47 @@ class StreamCapture:
             except Exception:
                 logger.exception("Failed to read capture properties")
 
+    def _start_ffmpeg_proc(self):
+        # start ffmpeg to output raw bgr24 frames
+        w, h = self._ffmpeg_size
+        self._ffmpeg_frame_bytes = w * h * 3
+        cmd = [
+            'ffmpeg', '-rtsp_transport', 'tcp', '-i', self.rtsp_url,
+            '-f', 'rawvideo', '-pix_fmt', 'bgr24', '-vf', f'scale={w}:{h}',
+            '-nostdin', '-an', '-sn', '-loglevel', 'error', '-'
+        ]
+        logger.info("Starting ffmpeg subprocess for decode: %s", ' '.join(cmd))
+        self.ffmpeg_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self._backend = 'FFMPEG_PROC'
+        # spawn stderr reader thread
+        def _read_err(proc):
+            try:
+                for line in proc.stderr:
+                    try:
+                        logger.debug("ffmpeg: %s", line.decode(errors='ignore').strip())
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+        threading.Thread(target=_read_err, args=(self.ffmpeg_proc,), daemon=True).start()
+
+    def _stop_ffmpeg_proc(self):
+        if self.ffmpeg_proc:
+            try:
+                self.ffmpeg_proc.kill()
+            except Exception:
+                pass
+            try:
+                self.ffmpeg_proc.stdout.close()
+            except Exception:
+                pass
+            try:
+                self.ffmpeg_proc.stderr.close()
+            except Exception:
+                pass
+            self.ffmpeg_proc = None
+            logger.info("ffmpeg proc stopped")
+
     def _run(self):
         try:
             self._open_capture()
@@ -121,13 +182,35 @@ class StreamCapture:
             last_read_time = time.time()
             last_backend_switch = time.time()
             while not self.stopped.is_set():
-                if not self.cap or not self.cap.isOpened():
-                    logger.warning("Capture not opened, retrying in 5s")
-                    time.sleep(5)
-                    self._open_capture()
-                    continue
-
-                ret, frame = self.cap.read()
+                # if using ffmpeg subprocess decoding
+                if getattr(settings, 'USE_FFMPEG_DECODE', False) and self.ffmpeg_proc is not None:
+                    try:
+                        frame_bytes = self.ffmpeg_proc.stdout.read(self._ffmpeg_frame_bytes)
+                        if not frame_bytes or len(frame_bytes) < self._ffmpeg_frame_bytes:
+                            logger.debug("ffmpeg stdout read incomplete frame (len=%s)", len(frame_bytes) if frame_bytes else 0)
+                            # restart ffmpeg proc
+                            time.sleep(0.5)
+                            self._start_ffmpeg_proc()
+                            continue
+                        import numpy as _np
+                        frame = _np.frombuffer(frame_bytes, dtype=_np.uint8)
+                        try:
+                            frame = frame.reshape((self._ffmpeg_size[1], self._ffmpeg_size[0], 3))
+                        except Exception:
+                            logger.warning("ffmpeg frame reshape failed")
+                            continue
+                        ret = True
+                    except Exception as e:
+                        logger.exception("Error reading ffmpeg stdout: %s", e)
+                        ret = False
+                        frame = None
+                else:
+                    if not self.cap or not self.cap.isOpened():
+                        logger.warning("Capture not opened, retrying in 5s")
+                        time.sleep(5)
+                        self._open_capture()
+                        continue
+                    ret, frame = self.cap.read()
                 now = time.time()
                 if not ret or frame is None:
                     # detailed debug info
