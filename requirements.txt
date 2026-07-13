@@ -8,3 +8,4 @@ faiss-cpu==1.7.4
 ultralytics==8.0.196
 git+https://github.com/openai/CLIP.git
 psutil==5.9.5
+watchdog==4.0.1

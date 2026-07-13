@@ -1,4 +1,5 @@
 from typing import List
+import threading
 import numpy as np
 from utils.logger import get_logger
 from config import settings
@@ -16,6 +17,7 @@ class YoloDetector:
         self.model_path = model_path or str(settings.YOLO_MODEL_DIR / "yolov8n.pt")
         self.device = device or settings.get_device()
         self.model = None
+        self._lock = threading.Lock()  # 线程安全锁（FTP核验 + 预览可能同时调用）
         self._load()
 
     def _load(self):
@@ -28,12 +30,13 @@ class YoloDetector:
         except Exception:
             logger.exception("Failed to load YOLO model")
 
-    def detect(self, frame: np.ndarray, conf: float = None) -> List[List[float]]:
+    def detect(self, frame: np.ndarray, conf: float = None, verbose: bool = False) -> List[List[float]]:
         if self.model is None:
             return []
         conf = conf or settings.YOLO_CONFIDENCE_THRESHOLD
         try:
-            results = self.model.predict(frame, imgsz=640, conf=conf)
+            with self._lock:
+                results = self.model.predict(frame, imgsz=640, conf=conf, verbose=verbose)
             out = []
             for r in results:
                 boxes = r.boxes

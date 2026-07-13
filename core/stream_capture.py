@@ -138,11 +138,17 @@ class StreamCapture:
         # start ffmpeg to output raw bgr24 frames
         w, h = self._ffmpeg_size
         self._ffmpeg_frame_bytes = w * h * 3
-        cmd = [
-            'ffmpeg', '-rtsp_transport', 'tcp', '-i', self.rtsp_url,
+        cmd = ['ffmpeg', '-rtsp_transport', 'tcp', '-i', self.rtsp_url]
+        if getattr(settings, 'USE_FFMPEG_HWACCEL', False) and getattr(settings, 'FFMPEG_HWACCEL', ''):
+            hwaccel = settings.FFMPEG_HWACCEL
+            cmd.extend(['-hwaccel', hwaccel])
+            if getattr(settings, 'FFMPEG_HWACCEL_DEVICE', ''):
+                cmd.extend(['-hwaccel_device', settings.FFMPEG_HWACCEL_DEVICE])
+            logger.info("Using ffmpeg hardware accel: %s", hwaccel)
+        cmd.extend([
             '-f', 'rawvideo', '-pix_fmt', 'bgr24', '-vf', f'scale={w}:{h}',
             '-nostdin', '-an', '-sn', '-loglevel', 'error', '-'
-        ]
+        ])
         logger.info("Starting ffmpeg subprocess for decode: %s", ' '.join(cmd))
         try:
             # open stderr log file under settings.LOG_DIR if available

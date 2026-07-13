@@ -1,0 +1,55 @@
+{
+  "nvr_model": "Reolink RLN16-410",
+  "firmware_version": "v3.x",
+  "total_channels": 16,
+  "ftp": {
+    "server_ip": "192.168.124.1",
+    "port": 21,
+    "username": "nvr_upload",
+    "transport_mode": "PASV",
+    "ftps_enabled": false,
+    "ftp_postpone_sec": 0
+  },
+  "channels": {
+    "0": {
+      "name": "通道0",
+      "enabled": true,
+      "arming_schedule": {
+        "start_time": "00:00",
+        "end_time": "23:59",
+        "days": [0, 1, 2, 3, 4, 5, 6]
+      },
+      "alarm_types": {
+        "human": true,
+        "vehicle": true,
+        "pet": true,
+        "motion": true
+      },
+      "expected": {
+        "jpg_resolution": null,
+        "mp4_resolution": null,
+        "mp4_duration_sec": 30,
+        "mp4_codec": "H.264"
+      }
+    }
+  },
+  "default_channel": {
+    "arming_schedule": {
+      "start_time": "00:00",
+      "end_time": "23:59",
+      "days": [0, 1, 2, 3, 4, 5, 6]
+    },
+    "alarm_types": {
+      "human": true,
+      "vehicle": true,
+      "pet": true,
+      "motion": true
+    },
+    "expected": {
+      "jpg_resolution": null,
+      "mp4_resolution": null,
+      "mp4_duration_sec": 30,
+      "mp4_codec": "H.264"
+    }
+  }
+}

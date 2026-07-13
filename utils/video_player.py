@@ -22,10 +22,13 @@ def find_ffplay():
     return None
 
 
-def play_video_at(video_path: str, seconds: float = 0.0):
+def play_video_at(video_path: str, seconds: float = 0.0, duration: float = None):
     ffplay = find_ffplay()
     if ffplay:
-        cmd = [ffplay, "-ss", str(seconds), "-autoexit", "-nodisp", video_path]
+        cmd = [ffplay, "-ss", str(seconds), "-autoexit"]
+        if duration is not None and duration > 0:
+            cmd.extend(["-t", str(duration)])
+        cmd.append(video_path)
         try:
             subprocess.Popen(cmd)
             return True
