@@ -112,6 +112,9 @@ def parse_filename(filepath: str) -> Optional[Dict]:
         file_type = "image"
     elif ext in VIDEO_EXTS:
         file_type = "video"
+    elif ext == ".txt":
+        # NVR 有时会上传 .txt 日志文件，跳过
+        return None
     else:
         file_type = "unknown"
 
