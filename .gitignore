@@ -11,3 +11,4 @@ data/indices/
 data/mappings/
 *.log
 
+.venv/

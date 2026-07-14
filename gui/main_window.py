@@ -40,6 +40,7 @@ from gui.navigation_bar import NavigationBar
 from gui.search_vocabulary_panel import SearchVocabularyPanel
 from gui.audio_test_widget import AudioTestWidget
 from gui.config_test_widget import ConfigTestWidget
+from gui.nvr_device_widget import NvrDeviceWidget
 from core.preview_thread import PreviewThread
 from core.search_thread import SearchThread
 from core.index_thread import IndexThread
@@ -387,6 +388,10 @@ class MainWindow(QMainWindow):
         # ── 子页 2d: NVR 配置测试 ────────────────────
         self.config_test_widget = ConfigTestWidget(self)
         sub_tabs.addTab(self.config_test_widget, "NVR配置测试")
+
+        # ── 子页 2e: NVR 设备状态 (reolink_aio) ──────
+        self.nvr_device_widget = NvrDeviceWidget(self)
+        sub_tabs.addTab(self.nvr_device_widget, "NVR 设备")
 
         layout.addWidget(sub_tabs)
         return page

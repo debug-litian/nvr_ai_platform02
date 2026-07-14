@@ -93,6 +93,18 @@ NVR_TOTAL_CHANNELS = 16
 REPORT_EXPORT_DIR = ROOT / "reports"
 os.makedirs(REPORT_EXPORT_DIR, exist_ok=True)
 
+# ═══════════════════════════════════════════════════════════
+# reolink_aio API 配置
+# ═══════════════════════════════════════════════════════════
+
+# NVR HTTP API 连接参数（reolink_aio SDK）
+NVR_HOST = os.environ.get("NVR_HOST", "192.168.124.2")
+NVR_USERNAME = os.environ.get("NVR_USERNAME", "admin")
+NVR_PASSWORD = os.environ.get("NVR_PASSWORD", "")
+
+# 是否启用 reolink_aio SDK（需 Python 3.11+）
+USE_REOLINK_API = os.environ.get("NVR_USE_API", "1") == "1"
+
 def get_device():
     # Normalize device string
     d = DEVICE
