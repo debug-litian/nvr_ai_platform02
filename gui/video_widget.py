@@ -1,5 +1,5 @@
 """
-VideoWidget — 视频显示组件（支持滚轮缩放 + 鼠标拖拽平移）
+VideoWidget — 视频显示组件（支持滚轮缩放 + 鼠标拖拽平移 + 热力图叠加）
 
 特性：
 - 鼠标滚轮：放大/缩小画面（0.25x ~ 4.0x）
@@ -7,6 +7,7 @@ VideoWidget — 视频显示组件（支持滚轮缩放 + 鼠标拖拽平移）
 - 双击：重置缩放和位置
 - 显示 YOLO 检测框（画在 frame 上的 OpenCV 框）
 - 顶部叠加 OSD 信息（Backend / FPS / RecvFPS / CPU / Status）
+- 热力图半透明叠加（运动热力图 / Heatmap）
 """
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtGui import QImage, QPainter, QFont, QColor
@@ -33,6 +34,11 @@ class VideoWidget(QWidget):
         self._offset_x = 0.0       # 图像中心相对于窗口中心的偏移（像素）
         self._offset_y = 0.0
         self._last_mouse_pos = None  # 拖拽时上一次鼠标位置
+
+        # ── 热力图叠加 ──────────────────────────────────
+        self._heatmap_overlay: np.ndarray = None  # 热力图 BGR 图像（与帧同尺寸）
+        self._heatmap_enabled: bool = False
+        self._heatmap_alpha: float = 0.30         # 热力图叠加透明度
 
         # 启用鼠标追踪（不按按钮也能接收 move 事件）
         self.setMouseTracking(True)
@@ -97,6 +103,34 @@ class VideoWidget(QWidget):
         self.update()
 
     # ═══════════════════════════════════════════════════════
+    # 热力图叠加
+    # ═══════════════════════════════════════════════════════
+
+    def set_heatmap(self, heat_bgr: np.ndarray, alpha: float = 0.30):
+        """
+        设置热力图叠加层。
+
+        Args:
+            heat_bgr: BGR 格式的伪彩色热力图 (np.uint8)，与帧同尺寸
+            alpha: 透明度 (0=完全透明, 1=不透明)
+        """
+        self._heatmap_overlay = heat_bgr
+        self._heatmap_alpha = alpha
+        self._heatmap_enabled = True
+        self.update()
+
+    def clear_heatmap(self):
+        """清除热力图叠加"""
+        self._heatmap_overlay = None
+        self._heatmap_enabled = False
+        self.update()
+
+    def set_heatmap_enabled(self, enabled: bool):
+        """开关热力图显示（不清除已累积的热力矩阵）"""
+        self._heatmap_enabled = enabled
+        self.update()
+
+    # ═══════════════════════════════════════════════════════
     # 绘制
     # ═══════════════════════════════════════════════════════
 
@@ -130,6 +164,19 @@ class VideoWidget(QWidget):
 
         return QRect(cx, cy, sw, sh), scale
 
+    def _frame_to_qimage(self, frame: np.ndarray) -> QImage:
+        """将 numpy BGR 数组转换为 QImage（用于热力图等叠加层）"""
+        try:
+            import cv2
+            if frame.ndim == 2:
+                rgb = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
+            else:
+                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            h, w, ch = rgb.shape
+            return QImage(rgb.data, w, h, ch * w, QImage.Format_RGB888).copy()
+        except Exception:
+            return None
+
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.SmoothPixmapTransform)
@@ -145,8 +192,19 @@ class VideoWidget(QWidget):
             self._draw_osd(painter)
             return
 
-        # 绘制缩放后的图像
+        # 绘制缩放后的主图像
         painter.drawImage(target_rect, self._qimg)
+
+        # ★ 绘制热力图叠加层 —— 半透明覆盖在主图像上
+        if self._heatmap_enabled and self._heatmap_overlay is not None:
+            try:
+                heat_qimg = self._frame_to_qimage(self._heatmap_overlay)
+                if heat_qimg is not None:
+                    painter.setOpacity(self._heatmap_alpha)
+                    painter.drawImage(target_rect, heat_qimg)
+                    painter.setOpacity(1.0)
+            except Exception:
+                pass
 
         # OSD 文字
         self._draw_osd(painter)
@@ -171,6 +229,8 @@ class VideoWidget(QWidget):
                 lines.append(f"Status: {self._overlay_status}")
             zoom_pct = int(self._zoom * 100)
             lines.append(f"Zoom: {zoom_pct}%")
+            if self._heatmap_enabled:
+                lines.append("\U0001f525 Heatmap: ON")
             if lines:
                 text = " | ".join(lines)
                 metrics = painter.fontMetrics()
