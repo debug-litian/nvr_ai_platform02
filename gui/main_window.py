@@ -37,6 +37,7 @@ from PyQt5.QtCore import QTimer, Qt, QElapsedTimer, pyqtSlot
 from gui.video_widget import VideoWidget
 from gui.alert_panel import AlertPanel
 from gui.navigation_bar import NavigationBar
+from gui.search_vocabulary_panel import SearchVocabularyPanel
 from core.preview_thread import PreviewThread
 from core.search_thread import SearchThread
 from core.index_thread import IndexThread
@@ -249,6 +250,9 @@ class MainWindow(QMainWindow):
         self.duration_input.setValue(10)
         self.duration_input.setSuffix("s")
         self.btn_export = QPushButton("\U0001f4ca 导出结果")
+        self.btn_vocab = QPushButton("\U0001f4d6 词库")
+        self.btn_vocab.setToolTip("打开文搜图词库看板，点击词汇快速搜索")
+        self.btn_vocab.clicked.connect(self._on_open_vocabulary)
 
         s_layout.addWidget(QLabel("搜索词:"))
         s_layout.addWidget(self.search_input, stretch=1)
@@ -261,6 +265,7 @@ class MainWindow(QMainWindow):
         s_layout.addWidget(QLabel("时长:"))
         s_layout.addWidget(self.duration_input)
         s_layout.addWidget(self.btn_export)
+        s_layout.addWidget(self.btn_vocab)
 
         self.btn_search.clicked.connect(self._on_search)
         self.btn_export.clicked.connect(self._on_export)
@@ -869,6 +874,26 @@ class MainWindow(QMainWindow):
                 video_player.play_video_at(video, float(ts), duration=duration)
         except Exception:
             video_player.play_video_at(video, 0.0, duration=duration)
+
+    # ═══════════════════════════════════════════════════════
+    # 词库看板
+    # ═══════════════════════════════════════════════════════
+
+    def _on_open_vocabulary(self):
+        """打开文搜图词库看板"""
+        panel = SearchVocabularyPanel(self)
+        panel.word_selected.connect(self._on_vocabulary_word_selected)
+        panel.search_requested.connect(self._on_vocabulary_search)
+        panel.exec_()
+
+    def _on_vocabulary_word_selected(self, word: str):
+        """词库面板中点击了某个词 — 词库面板内部已更新选中列表，此处仅转发"""
+        _ = word  # 词库面板内部处理，此处不需要额外操作
+
+    def _on_vocabulary_search(self, text: str):
+        """词库面板点击搜索 → 填入搜索框 → 触发搜索"""
+        self.search_input.setText(text)
+        self._on_search()
 
     # ═══════════════════════════════════════════════════════
     # 导出
