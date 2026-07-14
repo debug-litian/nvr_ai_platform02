@@ -21,6 +21,7 @@ import tempfile
 import os
 import json
 import time
+import platform
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
@@ -269,7 +270,7 @@ class AudioDetector:
         try:
             result = subprocess.run(
                 cmd, capture_output=True, text=True, timeout=30,
-                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+                creationflags=subprocess.CREATE_NO_WINDOW if platform.system() == "Windows" else 0,
             )
             if result.returncode != 0:
                 logger.debug("ffprobe error: %s", result.stderr[:200])
@@ -323,7 +324,7 @@ class AudioDetector:
         try:
             result = subprocess.run(
                 cmd, capture_output=True, timeout=60,
-                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+                creationflags=subprocess.CREATE_NO_WINDOW if platform.system() == "Windows" else 0,
             )
 
             if result.returncode != 0:

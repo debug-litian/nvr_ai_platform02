@@ -14,7 +14,7 @@ def find_ffplay():
         return p
 
     # Windows 常见安装路径
-    if os.name == "nt":
+    if platform.system() == "Windows":
         import os as _os
         for base in [
             _os.environ.get("ProgramFiles", r"C:\Program Files"),
