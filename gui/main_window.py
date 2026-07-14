@@ -39,6 +39,7 @@ from gui.alert_panel import AlertPanel
 from gui.navigation_bar import NavigationBar
 from gui.search_vocabulary_panel import SearchVocabularyPanel
 from gui.audio_test_widget import AudioTestWidget
+from gui.config_test_widget import ConfigTestWidget
 from core.preview_thread import PreviewThread
 from core.search_thread import SearchThread
 from core.index_thread import IndexThread
@@ -382,6 +383,10 @@ class MainWindow(QMainWindow):
         # ── 子页 2c: 音频检测 ───────────────────────
         self.audio_test_widget = AudioTestWidget(self)
         sub_tabs.addTab(self.audio_test_widget, "\U0001f3a4 音频检测")
+
+        # ── 子页 2d: NVR 配置测试 ────────────────────
+        self.config_test_widget = ConfigTestWidget(self)
+        sub_tabs.addTab(self.config_test_widget, "NVR配置测试")
 
         layout.addWidget(sub_tabs)
         return page
@@ -1004,6 +1009,9 @@ class MainWindow(QMainWindow):
         filename = result.get("filename", "")
         self.alert_panel.update_alert(filename, result)
         self.alert_panel.refresh_report()
+        # ★ 追加到配置测试器
+        if self.config_test_widget:
+            self.config_test_widget.add_result(result)
         if self._verification_worker:
             pending = self._verification_worker.pending_count
             self.ftp_queue_lbl.setText(f"待处理: {pending}" if pending > 0 else "✅ 全部完成")
