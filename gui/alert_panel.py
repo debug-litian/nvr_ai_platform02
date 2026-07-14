@@ -282,12 +282,29 @@ class AlarmDetailTab(QWidget):
         """双击行 → 打开文件"""
         filepath = self._alerts[row].get("file_path", "")
         if filepath and os.path.exists(filepath):
-            try:
-                os.startfile(filepath)
-            except Exception:
-                import subprocess
-                subprocess.Popen(["xdg-open", filepath])
+            self._open_file(filepath)
         self.alert_double_clicked.emit(self._alerts[row])
+
+    @staticmethod
+    def _open_file(filepath: str):
+        """跨平台用系统默认程序打开文件"""
+        import platform
+        import subprocess as sp
+        system = platform.system()
+        try:
+            if system == "Windows":
+                import os as _os
+                _os.startfile(filepath)
+            elif system == "Darwin":
+                sp.Popen(["open", filepath])
+            else:
+                sp.Popen(["xdg-open", filepath])
+        except Exception:
+            # 最后的 fallback
+            try:
+                sp.Popen(["xdg-open", filepath])
+            except Exception:
+                pass
 
     def _on_export_csv(self):
         """导出明细 CSV"""

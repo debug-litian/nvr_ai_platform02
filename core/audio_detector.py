@@ -134,20 +134,40 @@ class AudioDetector:
 
     @staticmethod
     def _find_binary(name: str) -> Optional[str]:
-        """查找可执行文件路径"""
+        """跨平台查找可执行文件路径"""
         import shutil
+        import os as _os
+        import platform
+
+        # 1. PATH 查找
         p = shutil.which(name) or shutil.which(name + ".exe")
         if p:
             return p
-        # Windows 常见路径
-        if os.name == "nt":
+
+        system = platform.system()
+
+        # 2. Windows 常见安装路径
+        if system == "Windows":
             for base in [
-                os.environ.get("ProgramFiles", r"C:\Program Files"),
-                os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"),
+                _os.environ.get("ProgramFiles", r"C:\Program Files"),
+                _os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"),
             ]:
-                candidate = os.path.join(base, "ffmpeg", "bin", name + ".exe")
-                if os.path.exists(candidate):
+                candidate = _os.path.join(base, "ffmpeg", "bin", name + ".exe")
+                if _os.path.exists(candidate):
                     return candidate
+
+        # 3. Linux 常见路径
+        if system == "Linux":
+            for p in [f"/usr/bin/{name}", f"/usr/local/bin/{name}"]:
+                if _os.path.exists(p):
+                    return p
+
+        # 4. macOS Homebrew
+        if system == "Darwin":
+            p = f"/opt/homebrew/bin/{name}"
+            if _os.path.exists(p):
+                return p
+
         return None
 
     # ── 公共接口 ──────────────────────────────────────
