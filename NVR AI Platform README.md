@@ -74,6 +74,17 @@ RTSP 地址配置说明
 4. NVR 报警文件到达 → 自动核验 → 报警明细（Tab 1）显示核验结果，测试报告（Tab 2）生成聚合统计
 5. 点击 **”导出 HTML 报告”** 或 **”导出 CSV 报告”** 保存测试结果
 
+### 最近改动摘要 (v2.1)
+- **嵌入式 GUI 重构**：改为 4 页 QStackedWidget + 顶部导航栏（仿 Reolink NVR HDMI GUI 风格）
+  - 第1页：实时预览（视频+RTSP控制+搜索+结果表格）
+  - 第2页：测试工具（FTP 监控 + 热力图分析 + 音频检测）
+  - 第3页：报警面板（报警明细+FTP测试报告）
+  - 第4页：日志
+- **运动热力图验证**：`core/heatmap_generator.py` 帧间差分累积热力矩阵，伪彩色叠加到预览画面
+- **文搜图词库看板**：`gui/search_vocabulary_panel.py` 分类词汇搜索建议面板（人/机动车/非机动车/动物）
+- **NVR 音频检测**：`core/audio_detector.py` ffprobe+ffmpeg+numpy 音频参数自动检测
+  - 15 项检测参数：编码/采样率/声道/比特率/RMS/峰值/底噪/SNR/削波/静音/断流
+
 ### 最近改动摘要 (v2.0)
 - **新增 FTP 报警核验完整模块**：7 个新文件（alarm_types, ftp_filename_parser, ftp_monitor, alarm_verifier, verification_worker, ftp_test_reporter, nvr_profile.json）
 - **重写 `gui/alert_panel.py`**：从简单 QListWidget 升级为双 Tab 面板（报警明细 + FTP 测试报告）
