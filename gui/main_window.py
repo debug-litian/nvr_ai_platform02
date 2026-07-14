@@ -60,7 +60,7 @@ logger = get_logger("main_window")
 
 
 class MainWindow(QMainWindow):
-    """NVR AI 平台主窗口"""
+    """NVR AI 平台主窗口 v2.1"""
 
     def __init__(self):
         super().__init__()
