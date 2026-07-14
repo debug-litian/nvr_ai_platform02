@@ -38,6 +38,7 @@ from gui.video_widget import VideoWidget
 from gui.alert_panel import AlertPanel
 from gui.navigation_bar import NavigationBar
 from gui.search_vocabulary_panel import SearchVocabularyPanel
+from gui.audio_test_widget import AudioTestWidget
 from core.preview_thread import PreviewThread
 from core.search_thread import SearchThread
 from core.index_thread import IndexThread
@@ -377,6 +378,10 @@ class MainWindow(QMainWindow):
         heat_layout.addStretch()
 
         sub_tabs.addTab(heat_page, "\U0001f525 热力图分析")
+
+        # ── 子页 2c: 音频检测 ───────────────────────
+        self.audio_test_widget = AudioTestWidget(self)
+        sub_tabs.addTab(self.audio_test_widget, "\U0001f3a4 音频检测")
 
         layout.addWidget(sub_tabs)
         return page
